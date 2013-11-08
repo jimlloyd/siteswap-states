@@ -7,13 +7,20 @@ empty = '-'
 inhand = 'x'
 
 def Quoted(s):
+    """Return the string s within quotes."""
     return '"' + str(s) + '"'
 
 def PatternStrToList(pattern):
-  return [ord(p)-ord('0') for p in pattern]
+    """Return a list of integers for the given pattern string.
+    PatternStrToList('531') -> [5, 3, 1]
+    """
+    return [ord(p)-ord('0') for p in pattern]
 
 def PatternListToStr(pattern):
-  return ''.join([chr(p) for p in pattern])
+    """Return a pattern string for the given list of integers.
+    PatternListToStr([5,3,1]) -> '531'
+    """
+    return ''.join([chr(p) for p in pattern])
 
 class SiteSwapStates:
     def __init__(self, options):
@@ -24,8 +31,8 @@ class SiteSwapStates:
         if options.pattern:
             self.IsValidPattern(options.pattern)
             print >> sys.stderr, self.StartState(options.pattern)
-            
-    
+
+
     def StartState(self, pattern):
         assert self.IsValidPattern(pattern)
         pat = PatternStrToList(pattern)
@@ -46,8 +53,8 @@ class SiteSwapStates:
                     return None
                 stateVec[i+p] = empty
         return ''.join(stateVec[:self.maxThrow])
-        
-    
+
+
     def IsValidPattern(self, pattern):
         min = '0'
         max = chr(ord(min) + self.maxThrow)
@@ -61,27 +68,30 @@ class SiteSwapStates:
             return False
         return True
 
+    def BaseState(self):
+        return inhand*self.nBalls + empty*(self.maxThrow-self.nBalls)
+
     def ComputeStates(self):
         todo = set()
         done = set()
-        todo.add(inhand*self.nBalls + empty*(self.maxThrow-self.nBalls))
-    
+        todo.add(self.BaseState())
+
         while todo:
             state = todo.pop()
             done.add(state)
-            
+
             if state in self.states:
                 transitions = self.states[state]
             else:
                 transitions = {}
                 self.states[state] = transitions
-            
+
             now = state[0]
             assert now==inhand or now==empty
             canthrow = now==inhand
-            
+
             newstate = state[1:] + empty
-            
+
             if not canthrow:
                 transitions[0] = newstate
             else:
@@ -93,12 +103,12 @@ class SiteSwapStates:
                         transitions[i+1] = s
                         if s not in done:
                             todo.add(s)
-    
+
     def PrintStates(self):
         for state in reversed(sorted(self.states.keys())):
             transitions = self.states[state]
             print "Transitions for", state, "are:", transitions
-    
+
     def Weight(self, throw):
         # Dot causes edges with heavier weights to be drawn shorter and straighter
         if throw == 0:
@@ -109,7 +119,7 @@ class SiteSwapStates:
             return t*t*t
 #            return (self.nBalls - throw) * (self.nBalls - throw)
 #            return float(self.maxThrow - throw) / self.maxThrow
-    
+
     def PrintDot(self):
         print "Digraph states {"
         print "rankdir=LR;"
@@ -135,7 +145,7 @@ if options.pattern:
     if sum(pat) != len(pat) * nBalls:
         sys.exit("Illegal pattern.")
     maxThrow = max(pat)
-    
+
 
 siteSwapStates = SiteSwapStates(options)
 siteSwapStates.PrintDot()

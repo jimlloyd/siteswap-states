@@ -36,5 +36,5 @@ nosetests.xml
 .pydevproject
 
 # graphviz files
-.dot
-.svg
+*.dot
+*.svg

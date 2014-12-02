@@ -23,68 +23,41 @@ def PatternListToStr(pattern):
     return ''.join([chr(p) for p in pattern])
 
 class SiteSwapStates:
+    """A class that contains a state space graph for siteswap juggling for a given number
+    of balls and a maximum throw height."""
+
     def __init__(self, options):
+        """The primary data structure is the states dictionary. The keys of the states dict are state strings,
+        e.g. 'xxx--'. The value for any such key is a dictionary that stores all valid transitions
+        from the key state. Using 3 balls with max throw of 5, the base state is 'xxx--'. self.states['xxx--']
+        is a dictionary containing the two valid transitions: {4: 'xx-x-', 5: 'xx--x'}."""
+
         self.nBalls = options.nBalls
         self.maxThrow = options.maxThrow
         self.states = {}
         self.ComputeStates()
-        if options.pattern:
-            self.IsValidPattern(options.pattern)
-            print >> sys.stderr, self.StartState(options.pattern)
-
-
-    def StartState(self, pattern):
-        assert self.IsValidPattern(pattern)
-        pat = PatternStrToList(pattern)
-        stateVec = [None for i in range(2*self.maxThrow)]
-        for i in range(self.maxThrow):
-            p = pat[i % len(pat)]
-            if p==0:
-                if stateVec[i]:
-                    return None
-                stateVec[i] = empty
-            elif stateVec[i] == None:
-                stateVec[i] = inhand
-                if stateVec[i+p]:
-                    return None
-                stateVec[i+p] = empty
-            elif stateVec[i] == empty:
-                if stateVec[i+p]:
-                    return None
-                stateVec[i+p] = empty
-        return ''.join(stateVec[:self.maxThrow])
-
-
-    def IsValidPattern(self, pattern):
-        min = '0'
-        max = chr(ord(min) + self.maxThrow)
-        for p in pattern:
-            if p < min or p > max:
-                print p, "is not a valid throw"
-                return False
-        pat = PatternStrToList(pattern)
-        if sum(pat) != len(pat) * self.nBalls:
-            print "Pattern doesn't average", self.nBalls, "balls"
-            return False
-        return True
 
     def BaseState(self):
+        """Return the base state for the given nBalls and maxThrow.
+        E.g. for 3 balls max throw 5 the base state is 'xxx--'."""
         return inhand*self.nBalls + empty*(self.maxThrow-self.nBalls)
 
     def ComputeStates(self):
-        todo = set()
-        done = set()
+        """Compute the entire state space graph"""
+
+        todo = set()    # The set of states for which transitions have not yet been calculated.
+        done = set()    # The set of states for which transitions have already been calculated.
+
+        # start with the base state, although we could start with any valid state.
         todo.add(self.BaseState())
 
         while todo:
             state = todo.pop()
             done.add(state)
 
-            if state in self.states:
-                transitions = self.states[state]
-            else:
-                transitions = {}
-                self.states[state] = transitions
+            assert state not in self.states
+            transitions = {}
+            self.states[state] = transitions
 
             now = state[0]
             assert now==inhand or now==empty
@@ -109,17 +82,6 @@ class SiteSwapStates:
             transitions = self.states[state]
             print "Transitions for", state, "are:", transitions
 
-    def Weight(self, throw):
-        # Dot causes edges with heavier weights to be drawn shorter and straighter
-        if throw == 0:
-            return 0
-        else:
-            t = abs(self.nBalls - throw)
-            t = self.maxThrow - t
-            return t*t*t
-#            return (self.nBalls - throw) * (self.nBalls - throw)
-#            return float(self.maxThrow - throw) / self.maxThrow
-
     def PrintDot(self):
         print "Digraph states {"
         print "rankdir=LR;"
@@ -129,23 +91,13 @@ class SiteSwapStates:
                 fromLabel = Quoted(fromState)
                 toLabel = Quoted(transitions[throw])
                 edgeLabel = Quoted(throw)
-                weight = self.Weight(throw)
-                print fromLabel, "->", toLabel, "[label="+edgeLabel, "weight="+str(weight)+"];"
+                print "%s -> %s [label=%s]" % (fromLabel, toLabel, edgeLabel)
         print "}"
 
 parser = OptionParser()
 parser.add_option("-b", "--balls", dest="nBalls", type="int", default=3, help="Number of balls being juggled")
 parser.add_option("-m", "--maxThrow", dest="maxThrow", type="int", default=5, help="Maximum throw height")
-parser.add_option("-p", "--pattern", dest="pattern", type="str", help="Siteswap pattern to highlight")
 (options, args) = parser.parse_args()
-
-if options.pattern:
-    pat = PatternStrToList(options.pattern)
-    nBalls = sum(pat) / len(pat)
-    if sum(pat) != len(pat) * nBalls:
-        sys.exit("Illegal pattern.")
-    maxThrow = max(pat)
-
 
 siteSwapStates = SiteSwapStates(options)
 siteSwapStates.PrintDot()

@@ -38,3 +38,4 @@ nosetests.xml
 # graphviz files
 *.dot
 *.svg
+*.png
